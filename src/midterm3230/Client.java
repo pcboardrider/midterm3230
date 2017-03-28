@@ -32,6 +32,7 @@ import javax.swing.border.EmptyBorder;
 
 import blackjack.message.Message;
 import blackjack.message.Message.MessageType;
+import blackjack.message.ChatMessage;
 import blackjack.message.MessageFactory;
 import blackjack.message.StatusMessage;
 
@@ -48,7 +49,6 @@ public class Client extends JFrame {
 	private int total = 0;
 
 	public Client() {
-		setupGUI();
 		try {
 			iP = InetAddress.getByName("52.35.72.251");
 			s = new Socket(iP, port);
@@ -98,7 +98,7 @@ public class Client extends JFrame {
 					keys.add(new Integer(e.getKeyCode()));
 				}
 				if (keys.contains(new Integer(KeyEvent.VK_CONTROL)) && keys.contains(new Integer(KeyEvent.VK_ENTER))) {
-					//TODO sendChat();
+					sendChat();
 				}
 			}
 			
@@ -114,8 +114,7 @@ public class Client extends JFrame {
 		JButton send = new JButton("Send");
 		send.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				//TODO sendChat();
-				
+				sendChat();
 			}
 		});
 		inputArea.add(send);
@@ -163,7 +162,7 @@ public class Client extends JFrame {
 			}
 		});
 		gameArea.add(stay);
-		contentPanel.add(gameArea, BorderLayout.CENTER);
+		contentPanel.add(gameArea, BorderLayout.EAST);
 		
 		addWindowListener(new WindowAdapter() {
 			@Override
@@ -187,6 +186,19 @@ public class Client extends JFrame {
 		area.setBorder(blackline);
 	}
 
+	private void sendChat() {
+		//TODO
+		try {
+			output.writeObject(MessageFactory.getChatMessage(chatType.getText()));
+			output.flush();
+			System.out.println("message = " + chatType.getText());
+			chatType.setText("");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+	}
+	
 	private class Reader implements Runnable {
 		private ObjectInputStream input;
 
@@ -202,9 +214,34 @@ public class Client extends JFrame {
 		@Override
 		public void run() {
 			//TODO
-			
+			try {
+				Message message = (Message) input.readObject();
+				if (message.getType().equals(MessageType.CHAT)) {
+					System.out.println("got a message");
+					System.out.println(((ChatMessage) message).getText());
+					chatDisplay.append(((ChatMessage) message).getText());
+					chatDisplay.setCaretPosition(chatDisplay.getDocument().getLength());
+				}
+				if (message.getType().equals(MessageType.ACK)) {
+					System.out.println("status ACK");
+				}
+				if (message.getType().equals(MessageType.DENY)) {
+					System.out.println("denied");
+				}
+				if (message.getType().equals(MessageType.CARD)) {
+					System.out.println("got a card");
+				}
+				if (message.getType().equals(MessageType.GAME_ACTION)) {
+					//TODO
+				}
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-
 	}
 
 	public static void main(String[] args) {
